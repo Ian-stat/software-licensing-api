@@ -27,20 +27,29 @@ jobs:
     - name: Setup .env for testing
       run: |
         touch .env
-        echo 'MONGO_STRING="${{ secrets.MONGO_STRING }}"'' >> .env
-        echo 'MONGO_DBNAME="${{ secrets.MONGO_DBNAME }}"'' >> .env
-        echo 'USERS_COLLECTION="${{ secrets.USERS_COLLECTION }}"'' >> .env
-        echo 'LICENSES_COLLECTION="${{ secrets.USERS_COLLECTION }}"'' >> .env
-        echo 'CHECKSUMS_COLLECTION="${{ secrets.CHECKSUMS_COLLECTION }}"'' >> .env
-        echo 'JWT_SECRET="${{ secrets.JWT_SECRET }}"' >> .env
+        echo "MONGO_STRING=$MONGO_STRING" >> .env
+        echo "MONGO_DBNAME=$MONGO_DBNAME" >> .env
+        echo "USERS_COLLECTION=$USERS_COLLECTION" >> .env
+        echo "LICENSES_COLLECTION=$USERS_COLLECTION" >> .env
+        echo "CHECKSUMS_COLLECTION=$CHECKSUMS_COLLECTION" >> .env
+        echo "JWT_SECRET=$JWT_SECRET" >> .env
         echo 'TOKEN_KEEPALIVE_MINUTES="15"' >> .env
         echo 'AUTH_LIMITER_PER_DAY="9999"' >> .env
         echo 'AUTH_LIMITER_PER_HOUR="9999"' >> .env
-        echo 'ADMIN_ID="${{ secrets.ADMIN_ID }}"' >> .env
+        echo "ADMIN_ID=$ADMIN_ID" >> .env
         echo 'ADMIN_OTP_SECRET=""' >> .env
-        echo 'LICENSE_PRIVATE_KEY="${{ secrets.LICENSE_PRIVATE_KEY }}"' >> .env
-        echo 'LICENSE_PUBLIC_KEY="${{ secrets.LICENSE_PUBLIC_KEY }}"' >> .env
-
+        echo "LICENSE_PRIVATE_KEY=\"$LICENSE_PRIVATE_KEY\"" >> .env
+        echo "LICENSE_PUBLIC_KEY=\"$LICENSE_PUBLIC_KEY\"" >> .env
+      env:
+        MONGO_STRING: ${{ secrets.MONGO_STRING }}
+        MONGO_DBNAME: ${{ secrets.MONGO_DBNAME }}
+        USERS_COLLECTION: ${{ secrets.USERS_COLLECTION }}
+        CHECKSUMS_COLLECTION: ${{ secrets.CHECKSUMS_COLLECTION }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        ADMIN_ID: ${{ secrets.ADMIN_ID }}
+        LICENSE_PRIVATE_KEY: ${{ secrets.LICENSE_PRIVATE_KEY }}
+        LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
+  
     - name: Run tests
       run: |
         python app.py
