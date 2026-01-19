@@ -52,5 +52,5 @@ jobs:
   
     - name: Run tests
       run: |
-        python app.py
+        nohup python app.py &
         pytest
