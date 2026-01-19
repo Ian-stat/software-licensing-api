@@ -24,33 +24,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install -r requirements.txt
-    - name: Setup .env for testing
+    - name: Run tests
       run: |
-        touch .env
-        echo "MONGO_STRING=$MONGO_STRING" >> .env
-        echo "MONGO_DBNAME=$MONGO_DBNAME" >> .env
-        echo "USERS_COLLECTION=$USERS_COLLECTION" >> .env
-        echo "LICENSES_COLLECTION=$USERS_COLLECTION" >> .env
-        echo "CHECKSUMS_COLLECTION=$CHECKSUMS_COLLECTION" >> .env
-        echo "JWT_SECRET=$JWT_SECRET" >> .env
-        echo 'TOKEN_KEEPALIVE_MINUTES="15"' >> .env
-        echo 'AUTH_LIMITER_PER_DAY="9999"' >> .env
-        echo 'AUTH_LIMITER_PER_HOUR="9999"' >> .env
-        echo "ADMIN_ID=$ADMIN_ID" >> .env
-        echo 'ADMIN_OTP_SECRET=""' >> .env
-        echo "LICENSE_PRIVATE_KEY=\"$LICENSE_PRIVATE_KEY\"" >> .env
-        echo "LICENSE_PUBLIC_KEY=\"$LICENSE_PUBLIC_KEY\"" >> .env
+        pytest
       env:
         MONGO_STRING: ${{ secrets.MONGO_STRING }}
         MONGO_DBNAME: ${{ secrets.MONGO_DBNAME }}
         USERS_COLLECTION: ${{ secrets.USERS_COLLECTION }}
+        LICENSES_COLLECTION: ${{ LICENSES_COLLECTION }}
         CHECKSUMS_COLLECTION: ${{ secrets.CHECKSUMS_COLLECTION }}
         JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        TOKEN_KEEPALIVE_MINUTES: "15"
+        AUTH_LIMITER_PER_DAY: "9999"
+        AUTH_LIMITER_PER_HOUR: "9999"
         ADMIN_ID: ${{ secrets.ADMIN_ID }}
+        ADMIN_OTP_SECRET: ""
         LICENSE_PRIVATE_KEY: ${{ secrets.LICENSE_PRIVATE_KEY }}
         LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
-  
-    - name: Run tests
-      run: |
-        nohup python app.py &
-        pytest
