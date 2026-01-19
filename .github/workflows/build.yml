@@ -24,6 +24,24 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install -r requirements.txt
-    - name: Test with pytest
+    - name: Setup .env for testing
       run: |
+        touch .env
+        echo 'MONGO_STRING="${{ secrets.MONGO_STRING }}"'' >> .env
+        echo 'MONGO_DBNAME="${{ secrets.MONGO_DBNAME }}"'' >> .env
+        echo 'USERS_COLLECTION="${{ secrets.USERS_COLLECTION }}"'' >> .env
+        echo 'LICENSES_COLLECTION="${{ secrets.USERS_COLLECTION }}"'' >> .env
+        echo 'CHECKSUMS_COLLECTION="${{ secrets.CHECKSUMS_COLLECTION }}"'' >> .env
+        echo 'JWT_SECRET="${{ secrets.JWT_SECRET }}"' >> .env
+        echo 'TOKEN_KEEPALIVE_MINUTES="15"' >> .env
+        echo 'AUTH_LIMITER_PER_DAY="9999"' >> .env
+        echo 'AUTH_LIMITER_PER_HOUR="9999"' >> .env
+        echo 'ADMIN_ID="${{ secrets.ADMIN_ID }}"' >> .env
+        echo 'ADMIN_OTP_SECRET=""' >> .env
+        echo 'LICENSE_PRIVATE_KEY="${{ secrets.LICENSE_PRIVATE_KEY }}"' >> .env
+        echo 'LICENSE_PUBLIC_KEY="${{ secrets.LICENSE_PUBLIC_KEY }}"' >> .env
+
+    - name: Run tests
+      run: |
+        python app.py
         pytest
