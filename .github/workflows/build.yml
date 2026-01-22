@@ -33,7 +33,7 @@ jobs:
 
     - name: Setup test environment
       run: |
-        run setup_tests.py
+        python setup_tests.py
       env:
         ADMIN_USERNAME: "admin"
         ADMIN_PASSWORD: "password"
