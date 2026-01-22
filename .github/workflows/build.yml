@@ -2,6 +2,8 @@ name: Build API
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["workflow_dev"]
 
 permissions:
   contents: read
@@ -35,7 +37,7 @@ jobs:
     - name: Run tests
       run: |
         python setup_tests.py
-        pytest
+        pytest -v
       env:
         PYTHONPATH: .
         ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
