@@ -19,7 +19,7 @@ class Config:
         self.LICENSE_PUBLIC_KEY = os.getenv("LICENSE_PUBLIC_KEY")
         self.LICENSE_PRIVATE_KEY = os.getenv("LICENSE_PRIVATE_KEY")
 
-        if any(var.strip() == '' or var is None for var in {self.MONGO_STRING}):
+        if any(var is None or var.strip() == '' for var in {self.MONGO_STRING}):
             exit()
 
 config = Config()
