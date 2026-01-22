@@ -31,9 +31,11 @@ jobs:
         pip install pytest
         pip install -r requirements.txt
 
-    - name: Setup test environment
+    - name: Run tests
       run: |
         python setup_tests.py
+        export PYTHONPATH=$PYTHONPATH:.
+        pytest
       env:
         ADMIN_USERNAME: "admin"
         ADMIN_PASSWORD: "password"
@@ -49,7 +51,3 @@ jobs:
         ADMIN_OTP_SECRET: ""
         LICENSE_PRIVATE_KEY: ${{ secrets.LICENSE_PRIVATE_KEY }}
         LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
-    - name: Run tests
-      run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        pytest
