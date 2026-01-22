@@ -6,3 +6,4 @@ routes/__pycache__/
 modules/__pycache__/
 .vscode/
 .venv/
+.pytest_cache/
