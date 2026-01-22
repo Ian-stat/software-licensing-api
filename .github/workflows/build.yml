@@ -18,7 +18,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
@@ -34,11 +35,11 @@ jobs:
     - name: Run tests
       run: |
         python setup_tests.py
-        export PYTHONPATH=$PYTHONPATH:.
         pytest
       env:
-        ADMIN_USERNAME: "admin"
-        ADMIN_PASSWORD: "password"
+        PYTHONPATH: .
+        ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         MONGO_STRING: "mongodb://localhost:27017/"
         MONGO_DBNAME: ${{ secrets.MONGO_DBNAME }}
         USERS_COLLECTION: ${{ secrets.USERS_COLLECTION }}
