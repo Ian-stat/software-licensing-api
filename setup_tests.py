@@ -23,7 +23,7 @@ try:
     if not user:
         hashed_password = bcrypt.hashpw(bytes(ADMIN_PASSWORD, 'utf-8'), bcrypt.gensalt())
         admin = mongo_client[config.USERS_COLLECTION].insert_one({"username": ADMIN_USERNAME, "password": hashed_password})
-        os.environ["ADMIN_ID"] = admin.inserted_id
+        os.environ["ADMIN_ID"] = str(admin.inserted_id)
     else:
         print("\n[ERROR] User with that name already exists.")
 except Exception as e:
