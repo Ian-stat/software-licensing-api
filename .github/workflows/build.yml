@@ -11,8 +11,8 @@ jobs:
 
     services:
       mongodb:
-        image: mongo:8.0
-      ports:
+        image: mongo
+        ports:
         - 27017:27017  
 
     runs-on: ubuntu-latest
