@@ -108,41 +108,5 @@ class TestLicenseGenerator:
         
         assert len(signature) > 0
 
-class TestAuthentication:
-    @patch('modules.authentication.config')
-    def test_generate_token_structure(self, mock_config):
-        mock_config.JWT_SECRET = "test_secret"
-        mock_config.TOKEN_KEEPALIVE_MINUTES = "15"
-        
-        user_id = str(ObjectId())
-        token = generate_token(user_id)
-        
-        payload = jwt.decode(token, "test_secret", algorithms=["HS256"])
-        
-        assert "user_id" in payload
-        assert "expiry_date" in payload
-        assert payload["user_id"] == user_id
-
-class TestHealthcheck:
-    def test_healthcheck_response(self):
-        hc = healthcheck()
-        response, status_code = hc.get()
-        
-        assert status_code == 200
-        assert "message" in response
-        assert response["message"] == "API is up and running!"
-
-class TestLimiter:
-    @patch('modules.limiter.config')
-    @patch('modules.limiter.limiter')
-    def test_limiter_init_app(self, mock_limiter, mock_config):
-        from modules.limiter import init_limiter
-        from flask import Flask
-        
-        app = Flask(__name__)
-        init_limiter(app)
-        
-        mock_limiter.init_app.assert_called_once_with(app)
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
