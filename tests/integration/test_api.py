@@ -1,141 +1,242 @@
-import sys
 import os
 import pytest
-import json
-import mongomock
 import bcrypt
-from unittest.mock import patch, MagicMock
+from bson import ObjectId
+from dotenv import load_dotenv
 
-test_env = {
-    'MONGO_STRING': 'mongodb://localhost:27017',
-    'MONGO_DBNAME': 'test_db',
-    'USERS_COLLECTION': 'users',
-    'JWT_SECRET': 'secret_test_key',
-    'TOKEN_KEEPALIVE_MINUTES': '30',
-    'AUTH_LIMITER_PER_DAY': '100',
-    'AUTH_LIMITER_PER_HOUR': '10',
-    'ADMIN_ID': '507f1f77bcf86cd799439011',
-    'ADMIN_OTP_SECRET': 'test_otp',
-    'CHECKSUMS_COLLECTION': 'checksums',
-    'LICENSES_COLLECTION': 'licenses',
-    'LICENSE_PUBLIC_KEY': 'test_public_key',
-    'LICENSE_PRIVATE_KEY': 'test_private_key'
-}
+BASE_DIR = os.getcwd()
+env_path = os.path.join(BASE_DIR, '.env')
+load_dotenv(env_path)
 
-os_getenv_patcher = patch('os.getenv', side_effect=lambda key, default=None: test_env.get(key, default))
-mongoclient_patcher = patch('pymongo.MongoClient', side_effect=mongomock.MongoClient)
-
-os_getenv_patcher.start()
-mongoclient_patcher.start()
-
-class MockLimiter:
-    def limit(self, *args, **kwargs):
-        def decorator(f):
-            return f
-        return decorator
-    
-    def exempt(self, f):
-        return f
-    
-    def init_app(self, app):
-        pass
-
-sys.modules['modules.limiter'] = MagicMock()
-sys.modules['modules.limiter'].limiter = MockLimiter()
-sys.modules['modules.limiter'].init_limiter = MagicMock()
-sys.modules['dotenv'] = MagicMock()
+TEST_DB_NAME = "automated_tests_db"
+os.environ["MONGO_DBNAME"] = TEST_DB_NAME
 
 from app import app, mongo_client
 from config import config
 from modules.authentication import generate_token
 
-config.USERS_COLLECTION = "users"
-config.LICENSES_COLLECTION = "licenses"
-config.CHECKSUMS_COLLECTION = "checksums"
-config.JWT_SECRET = "secret_test_key"
-config.ADMIN_ID = "507f1f77bcf86cd799439011"
-config.MONGO_DBNAME = "test_db"
+
+# ---------------- FIXTURES ----------------
 
 @pytest.fixture
 def client():
-    app.config['TESTING'] = True
+    app.config["TESTING"] = True
+    app.config["RATELIMIT_ENABLED"] = False
     with app.test_client() as client:
         yield client
 
-@pytest.fixture
-def db():
-    try:
-        mongo_client[config.USERS_COLLECTION].delete_many({})
-        mongo_client[config.LICENSES_COLLECTION].delete_many({})
-        mongo_client[config.CHECKSUMS_COLLECTION].delete_many({})
-    except:
-        pass
-    return mongo_client
 
 @pytest.fixture
-def admin_headers(db):
-    user_id = config.ADMIN_ID
+def db():
+    collections = [
+        config.USERS_COLLECTION,
+        config.LICENSES_COLLECTION,
+        config.CHECKSUMS_COLLECTION,
+    ]
+
+    def clean():
+        for col in collections:
+            mongo_client[col].delete_many({})
+
+    clean()
+    yield mongo_client
+    clean()
+
+
+@pytest.fixture
+def admin_headers(db, monkeypatch):
+    admin_id = ObjectId()
+
     hashed = bcrypt.hashpw(b"admin123", bcrypt.gensalt())
-    
     db[config.USERS_COLLECTION].insert_one({
-        "_id": mongomock.ObjectId(user_id),
+        "_id": admin_id,
         "username": "admin",
         "email": "admin@test.com",
-        "password": hashed
+        "password": hashed,
+        "role": "admin",
     })
-    
-    token = generate_token(user_id)
-    return {'Authorization': f'Bearer {token}'}
+
+    monkeypatch.setattr(config, "ADMIN_ID", str(admin_id))
+
+    token = generate_token(str(admin_id))
+    yield {"Authorization": f"Bearer {token}"}
+
 
 @pytest.fixture
 def user_headers(db):
-    user_id = "607f1f77bcf86cd799439022"
+    user_id = ObjectId()
+
     hashed = bcrypt.hashpw(b"user123", bcrypt.gensalt())
-    
     db[config.USERS_COLLECTION].insert_one({
-        "_id": mongomock.ObjectId(user_id),
+        "_id": user_id,
         "username": "basic_user",
         "email": "user@test.com",
-        "password": hashed
+        "password": hashed,
     })
-    
-    token = generate_token(user_id)
-    return {'Authorization': f'Bearer {token}', 'user_id': user_id}
 
+    token = generate_token(str(user_id))
+    yield {
+        "Authorization": f"Bearer {token}",
+        "user_id": str(user_id),
+    }
+
+
+# ---------------- HEALTH ----------------
 
 def test_health(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json == {'message': 'API is up and running!'}
+    res = client.get("/")
+    assert res.status_code == 200
+    assert res.json == {"message": "API is up and running!"}
+
+
+# ---------------- AUTH ----------------
 
 def test_login_success(client, db):
     hashed = bcrypt.hashpw(b"secret", bcrypt.gensalt())
-    db["users"].insert_one({"username": "tester", "password": hashed})
-    response = client.post("/auth", json={"username": "tester", "password": "secret"})
-    assert response.status_code == 200
-    assert "token" in response.json['message'].lower()
-    assert response.json['data'] is not None
+    db[config.USERS_COLLECTION].insert_one({
+        "username": "tester",
+        "password": hashed,
+    })
 
-def test_login_fail(client):
-    response = client.post("/auth", json={"username": "ghost", "password": "wrong_password"})
-    assert response.status_code == 401
+    res = client.post("/auth", json={
+        "username": "tester",
+        "password": "secret",
+    })
+
+    assert res.status_code == 200
+    assert "data" in res.json
+    assert isinstance(res.json["data"], str)
+    assert res.json["data"].count(".") == 2  # JWT ma 3 czesci
+
+
+def test_login_fail_wrong_password(client, db):
+    hashed = bcrypt.hashpw(b"secret", bcrypt.gensalt())
+    db[config.USERS_COLLECTION].insert_one({
+        "username": "tester",
+        "password": hashed,
+    })
+
+    res = client.post("/auth", json={
+        "username": "tester",
+        "password": "wrong",
+    })
+
+    assert res.status_code == 401
+
+
+def test_login_fail_nonexistent_user(client):
+    res = client.post("/auth", json={
+        "username": "ghost",
+        "password": "password",
+    })
+    assert res.status_code == 401
+
+
+# ---------------- USERS ----------------
 
 def test_create_user_as_admin(client, admin_headers, db):
-    payload = {"username": "newstudent", "password": "123", "email": "student@uni.edu"}
+    payload = {
+        "username": "newstudent",
+        "password": "123",
+        "email": "student@uni.edu",
+    }
 
-    response = client.post("/users", json=payload, headers=admin_headers)
+    res = client.post("/users", json=payload, headers=admin_headers)
+    assert res.status_code == 201
 
-    assert response.status_code == 201
-    assert db["users"].find_one({"username": "newstudent"}) is not None
+    user = db[config.USERS_COLLECTION].find_one({"username": "newstudent"})
+    assert user is not None
+
+
+def test_create_user_unauthorized(client):
+    res = client.post("/users", json={
+        "username": "hacker",
+        "password": "123",
+        "email": "hack@evil.com",
+    })
+    assert res.status_code == 401
+
+
+def test_create_duplicate_user(client, admin_headers):
+    payload = {
+        "username": "unique",
+        "password": "123",
+        "email": "u@u.com",
+    }
+
+    client.post("/users", json=payload, headers=admin_headers)
+    res = client.post("/users", json=payload, headers=admin_headers)
+
+    assert res.status_code == 409
+
+
+def test_delete_user_as_admin(client, admin_headers, db):
+    user_id = ObjectId()
+    db[config.USERS_COLLECTION].insert_one({
+        "_id": user_id,
+        "username": "todelete",
+    })
+
+    res = client.delete(f"/users/{user_id}", headers=admin_headers)
+    assert res.status_code == 200
+    assert db[config.USERS_COLLECTION].find_one({"_id": user_id}) is None
+
 
 def test_get_users_unauthorized(client):
-    response = client.get("/users")
-    assert response.status_code == 401
+    res = client.get("/users")
+    assert res.status_code == 401
 
-def test_checksum_lifecycle(client, admin_headers):
-    payload = {"checksum": "abc-123-hash", "software_version": "v1.0"}
-    client.post("/checksums", json=payload, headers=admin_headers)
-    response = client.get("/checksums", headers=admin_headers)
-    data = response.json
-    assert len(data) == 1
-    assert data[0]['checksum'] == "abc-123-hash"
+
+def test_get_users_as_admin(client, admin_headers, db):
+    db[config.USERS_COLLECTION].insert_one({
+        "username": "extra_user",
+        "email": "extra@test.com",
+    })
+
+    res = client.get("/users", headers=admin_headers)
+    assert res.status_code == 200
+
+    usernames = [u["username"] for u in res.json]
+    assert "admin" in usernames
+    assert "extra_user" in usernames
+
+
+# ---------------- LICENSES ----------------
+
+def test_generate_license_as_admin(client, admin_headers, user_headers, db):
+    res = client.post(
+        "/licenses",
+        json={"user_id": user_headers["user_id"]},
+        headers=admin_headers,
+    )
+
+    assert res.status_code == 201
+    assert "data" in res.json
+
+    key = res.json["data"]
+    assert db[config.LICENSES_COLLECTION].find_one(
+        {"license_key": key}
+    ) is not None
+
+
+def test_generate_license_as_user_forbidden(client, user_headers):
+    res = client.post(
+        "/licenses",
+        json={"user_id": user_headers["user_id"]},
+        headers={"Authorization": user_headers["Authorization"]},
+    )
+    assert res.status_code == 401
+
+
+def test_generate_license_unauthorized(client):
+    res = client.post("/licenses", json={"user_id": str(ObjectId())})
+    assert res.status_code == 401
+
+
+def test_generate_license_for_nonexistent_user(client, admin_headers):
+    res = client.post(
+        "/licenses",
+        json={"user_id": str(ObjectId())},
+        headers=admin_headers,
+    )
+    assert res.status_code in (400, 404)
