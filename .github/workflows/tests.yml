@@ -32,17 +32,3 @@ jobs:
         pytest -v
       env:
         PYTHONPATH: .
-        ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
-        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-        MONGO_STRING: "mongodb://localhost:27017/"
-        MONGO_DBNAME: ${{ secrets.MONGO_DBNAME }}
-        USERS_COLLECTION: ${{ secrets.USERS_COLLECTION }}
-        LICENSES_COLLECTION: ${{ secrets.LICENSES_COLLECTION }}
-        CHECKSUMS_COLLECTION: ${{ secrets.CHECKSUMS_COLLECTION }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        TOKEN_KEEPALIVE_MINUTES: "15"
-        AUTH_LIMITER_PER_DAY: "9999"
-        AUTH_LIMITER_PER_HOUR: "9999"
-        ADMIN_OTP_SECRET: ""
-        LICENSE_PRIVATE_KEY: ${{ secrets.LICENSE_PRIVATE_KEY }}
-        LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}

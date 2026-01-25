@@ -2,7 +2,6 @@ import pytest
 from modules.authentication import generate_token
 import bcrypt
 from bson import ObjectId
-from app import app
 from config import config
 
 @pytest.fixture
@@ -15,6 +14,7 @@ def db():
 
 @pytest.fixture
 def client():
+    from app import app
     app.config["TESTING"] = True
     app.config["RATELIMIT_ENABLED"] = False
     with app.test_client() as client:
