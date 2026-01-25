@@ -80,7 +80,7 @@ Generate a JWT token
 def generate_token(user_id):
     payload = {
         "user_id": user_id,
-        "expiry_date": str(datetime.now(timezone.utc) + timedelta(minutes=int(os.getenv("TOKEN_KEEPALIVE_MINUTES"))))
+        "expiry_date": str(datetime.now(timezone.utc) + timedelta(minutes=int(config.TOKEN_KEEPALIVE_MINUTES)))
     }
     token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
     return token
