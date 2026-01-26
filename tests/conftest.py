@@ -1,6 +1,7 @@
 from unittest.mock import patch, MagicMock
 import pytest
 import mongomock
+import sys
 
 mock_settings = MagicMock()
 mock_settings.MONGO_STRING = "mongodb://localhost:27017"
@@ -39,6 +40,7 @@ mock_settings.LICENSE_PUBLIC_KEY = PUBLIC_KEY_PEM.decode("utf-8")
 mock_settings.LICENSE_PRIVATE_KEY = PRIVATE_KEY_PEM.decode("utf-8")
 
 patch("pymongo.MongoClient", mongomock.MongoClient).start()
-patch("config.config", mock_settings).start()
 
-from app import app, mongo_client
+mock_module = MagicMock()
+mock_module.config = mock_settings
+sys.modules["config"] = mock_module
