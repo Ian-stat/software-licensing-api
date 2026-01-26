@@ -30,5 +30,6 @@ jobs:
     - name: Run tests
       run: |
         pytest -v
+        python3 -c "import pytest; pytest.main(['--collect-only'])"
       env:
         PYTHONPATH: .
