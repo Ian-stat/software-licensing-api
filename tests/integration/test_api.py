@@ -38,7 +38,7 @@ def admin_headers(db):
     })
 
     token = generate_token(str(admin_id))
-    yield {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}"}
 
 @pytest.fixture
 def user_headers(db):
@@ -53,7 +53,7 @@ def user_headers(db):
     })
 
     token = generate_token(str(user_id))
-    yield {
+    return {
         "Authorization": f"Bearer {token}",
         "user_id": str(user_id),
     }

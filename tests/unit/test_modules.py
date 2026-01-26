@@ -1,9 +1,14 @@
 import pytest
 import base64
 from bson import ObjectId
+import jwt
+from config import config
 
 from modules.validator import is_valid_objectid, is_valid_email, is_valid_username
 from modules.license_generator import get_license, get_hardware_id, get_signed_license
+from modules.authentication import is_admin, admin_only, authenticated, generate_token
+from app import app
+from datetime import datetime, timedelta, timezone
 
 class TestValidator:
     def test_is_valid_objectid_returns_true(self):
@@ -81,3 +86,81 @@ class TestLicenseGenerator:
             pytest.fail("Signed license is not a valid base64 value.")
         
         assert len(signature) > 0
+
+@pytest.fixture
+def user_token():
+    payload = {
+        "user_id": "asdf",
+        "expiry_date": str(datetime.now(timezone.utc) + timedelta(minutes=int(config.TOKEN_KEEPALIVE_MINUTES)))
+    }
+    return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
+
+@pytest.fixture
+def admin_token():
+    payload = {
+        "user_id": config.ADMIN_ID,
+        "expiry_date": str(datetime.now(timezone.utc) + timedelta(minutes=int(config.TOKEN_KEEPALIVE_MINUTES)))
+    }
+    return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
+
+class TestAuthentication:
+
+    def test_is_admin_when_user_is_admin_returns_true(self, admin_token):
+        with app.test_request_context(headers={"Authorization": f"Bearer {admin_token}"}):
+            @is_admin
+            def dummy_function(is_admin=False):
+                return is_admin
+        
+            assert dummy_function() == True
+    
+    def test_is_admin_when_user_is_not_admin_returns_false(self, user_token):
+        with app.test_request_context(headers={"Authorization": f"Bearer {user_token}"}):
+            @is_admin
+            def dummy_function(is_admin=False):
+                return is_admin
+        
+            assert dummy_function() == False
+    
+    def test_admin_only_when_user_is_admin_returns_user_id(self, admin_token):
+        with app.test_request_context(headers={"Authorization": f"Bearer {admin_token}"}):
+            @admin_only
+            def dummy_function(user_id=""):
+                return user_id
+        
+            assert dummy_function() == config.ADMIN_ID
+            
+    def test_admin_only_when_user_is_not_admin_returns_401(self, user_token):
+        with app.test_request_context(headers={"Authorization": f"Bearer {user_token}"}):
+            @admin_only
+            def dummy_function(user_id=""):
+                return user_id
+        
+            data, code = dummy_function()
+
+            assert isinstance(data["message"], str)
+            assert code == 401
+            
+    def test_authenticated_when_no_authentication_header_returns_401(self):
+        with app.test_request_context():
+            @authenticated
+            def dummy_function(user_id=""):
+                return user_id
+            
+            data, code = dummy_function()
+            
+            assert isinstance(data["message"], str)
+            assert code == 401
+    
+    def test_authenticated_when_authenticated_returns_user_id(self, user_token):
+        with app.test_request_context(headers={"Authorization": f"Bearer {user_token}"}):
+            @authenticated
+            def dummy_function(user_id=""):
+                return user_id
+            
+            assert isinstance(dummy_function(), str)
+            
+    def test_generate_token_returns_valid_jwt(self):
+        token = generate_token("asdf")
+        
+        assert isinstance(token, str)
+        assert token.count(".") == 2  # JWT ma 3 czesci
