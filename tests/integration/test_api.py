@@ -2,21 +2,25 @@ import pytest
 from modules.authentication import generate_token
 import bcrypt
 from bson import ObjectId
+from app import app
 from config import config
 
 @pytest.fixture
 def db():
     from app import mongo_client
+
     yield mongo_client
 
-    for collection in mongo_client.list_collection_names():
-        mongo_client[collection].delete_many({})
+    for name in mongo_client.list_collection_names():
+        mongo_client[name].drop()
 
 @pytest.fixture
 def client():
-    from app import app
     app.config["TESTING"] = True
-    app.config["RATELIMIT_ENABLED"] = False
+
+    from modules.limiter import limiter
+    limiter.enabled = False
+
     with app.test_client() as client:
         yield client
 

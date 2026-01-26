@@ -11,9 +11,9 @@ mock_settings.CHECKSUMS_COLLECTION = "checksums"
 mock_settings.JWT_SECRET = "test_secret"
 mock_settings.ADMIN_ID = "000000000000000000000000"
 mock_settings.ADMIN_OTP_SECRET = ""
-mock_settings.TOKEN_KEEPALIVE_MINUTES = 15
-mock_settings.AUTH_LIMITER_PER_DAY = 9999
-mock_settings.AUTH_LIMITER_PER_HOUR = 9999
+mock_settings.TOKEN_KEEPALIVE_MINUTES = "15"
+mock_settings.AUTH_LIMITER_PER_DAY = "9999"
+mock_settings.AUTH_LIMITER_PER_HOUR = "9999"
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
@@ -38,8 +38,5 @@ PUBLIC_KEY_PEM = PUBLIC_KEY.public_bytes(
 mock_settings.LICENSE_PUBLIC_KEY = PUBLIC_KEY_PEM.decode("utf-8")
 mock_settings.LICENSE_PRIVATE_KEY = PRIVATE_KEY_PEM.decode("utf-8")
 
-with patch("config.config", mock_settings):
-    from config import config
-
-with patch("pymongo.MongoClient", mongomock.MongoClient):
-    from app import app, mongo_client
+patch("pymongo.MongoClient", mongomock.MongoClient).start()
+patch("config.config", mock_settings).start()
