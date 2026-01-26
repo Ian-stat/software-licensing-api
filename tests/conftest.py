@@ -40,3 +40,5 @@ mock_settings.LICENSE_PRIVATE_KEY = PRIVATE_KEY_PEM.decode("utf-8")
 
 patch("pymongo.MongoClient", mongomock.MongoClient).start()
 patch("config.config", mock_settings).start()
+
+from app import app, mongo_client
