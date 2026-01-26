@@ -7,3 +7,5 @@ routes/__pycache__/
 modules/__pycache__/
 .vscode/
 htmlcov/
+.coverage/
+tests/.coverage/

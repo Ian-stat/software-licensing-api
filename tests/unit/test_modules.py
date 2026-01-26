@@ -15,36 +15,51 @@ class TestValidator:
         valid_id = str(ObjectId())
         assert is_valid_objectid(valid_id) == True
     
-    def test_is_valid_objectid_returns_false(self):
-        assert is_valid_objectid("invalid") == False
-        assert is_valid_objectid("123") == False
-        assert is_valid_objectid("") == False
-        assert is_valid_objectid("zzzzzzzzzzzzzzzzzzzzzzz") == False
+    @pytest.mark.parametrize("value", [
+        "invalid",
+        "123",
+        "zzzzzzzzzzzzzzzzzzzzzzz",
+        ""
+    ])
+    def test_is_valid_objectid_returns_false(self, value):
+        assert is_valid_objectid(value) == False
     
-    def test_is_valid_email_returns_true(self):
-        assert is_valid_email("user@example.com") == True
-        assert is_valid_email("test123@domain.org") == True
-        assert is_valid_email("admin@test.pl") == True
+    @pytest.mark.parametrize("value", [
+        "user@example.com",
+        "test123@domain.org",
+        "admin@test.pl"
+    ])
+    def test_is_valid_email_returns_true(self, value):
+        assert is_valid_email(value) == True
     
-    def test_is_valid_email_returns_false(self):
-        assert is_valid_email("invalid") == False
-        assert is_valid_email("@example.com") == False
-        assert is_valid_email("user@") == False
-        assert is_valid_email("user@example") == False
-        assert is_valid_email("User@Example.com") == False
-        assert is_valid_email("user name@example.com") == False
+    @pytest.mark.parametrize("value", [
+        "invalid",
+        "@example.com",
+        "user@",
+        "user@example",
+        "User@Example.com",
+        "user name@example.com"
+    ])
+    def test_is_valid_email_returns_false(self, value):
+        assert is_valid_email(value) == False
     
-    def test_is_valid_username_returns_true(self):
-        assert is_valid_username("user123") == True
-        assert is_valid_username("Admin") == True
-        assert is_valid_username("TestUser") == True
+    @pytest.mark.parametrize("value", [
+        "user123",
+        "Admin",
+        "TestUser"
+    ])
+    def test_is_valid_username_returns_true(self, value):
+        assert is_valid_username(value) == True
     
-    def test_is_valid_username_returns_false(self):
-        assert is_valid_username("user-123") == False
-        assert is_valid_username("user_123") == False
-        assert is_valid_username("user 123") == False
-        assert is_valid_username("user@123") == False
-        assert is_valid_username("") == False
+    @pytest.mark.parametrize("value", [
+        "user-123",
+        "user_123",
+        "user 123",
+        "user@123",
+        ""
+    ])
+    def test_is_valid_username_returns_false(self, value):
+        assert is_valid_username(value) == False
 
 class TestLicenseGenerator:
     def test_get_license_returns_valid_license(self):
