@@ -9,3 +9,6 @@ limiter = Limiter(get_remote_address,
 
 def init_limiter(app):
     limiter.init_app(app)
+    
+def stop_limiter():
+    limiter.enabled = False

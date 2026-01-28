@@ -1,7 +1,8 @@
 from unittest.mock import patch, MagicMock
 import pytest
-import mongomock
+import pymongo
 import sys
+import app
 
 class TestingConfig:
     def __init__(self):
@@ -42,8 +43,7 @@ class TestingConfig:
 
 testing_config = TestingConfig()
 
-patch("pymongo.MongoClient", mongomock.MongoClient).start()
-
 mock_module = MagicMock()
 mock_module.config = testing_config
 sys.modules["config"] = mock_module
+

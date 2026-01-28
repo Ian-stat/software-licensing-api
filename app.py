@@ -8,6 +8,7 @@ from modules.limiter import init_limiter
 app = Flask(__name__)
 api = Api(app)
 mongo_client = MongoClient(config.MONGO_STRING)[config.MONGO_DBNAME]
+
 init_limiter(app)
 
 from modules.healthcheck import healthcheck

@@ -2,8 +2,8 @@ import pytest
 from modules.authentication import generate_token
 import bcrypt
 from bson import ObjectId
-from app import app
 from config import config
+from modules.limiter import Limiter
 
 @pytest.fixture
 def db():
@@ -16,10 +16,12 @@ def db():
 
 @pytest.fixture
 def client():
-    app.config["TESTING"] = True
+    from app import app
 
-    from modules.limiter import limiter
-    limiter.enabled = False
+    app.config["TESTING"] = True
+    
+    from modules.limiter import stop_limiter
+    stop_limiter()
 
     with app.test_client() as client:
         yield client
